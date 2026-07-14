@@ -16,10 +16,10 @@ services:
   - type: web
     name: trackify-api
     runtime: docker
-    repo: https://github.com/YOUR_USERNAME/trackify-api
+    repo: https://github.com/EnCRT/Trackify.api
     plan: free
     region: frankfurt  # or oregon, singapore — pick closest to users
-    branch: main
+    branch: master
     dockerfilePath: ./Dockerfile
     healthCheckPath: /_health
     numInstances: 1
@@ -42,6 +42,10 @@ services:
         value: postgres
       - key: DATABASE_URL
         sync: false  # Set manually in Render dashboard (contains password)
+      - key: DATABASE_SSL
+        value: "true"
+      - key: DATABASE_SSL_REJECT_UNAUTHORIZED
+        value: "false"
       
       # ---- Secrets (generate with: openssl rand -base64 32) ----
       - key: APP_KEYS
