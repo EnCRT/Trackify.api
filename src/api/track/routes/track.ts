@@ -1,48 +1,52 @@
 /**
- * track router — core CRUD + custom geo endpoints
+ * Track router — core CRUD + custom geo routes
  *
- * Strapi 5 custom route pattern:
- *   1. Resolve coreRouter.routes (Route[] | (() => Route[]))
- *   2. Spread core routes + append custom ones
- *   3. Export as a flat array
+ * Strapi 5 note: routes must export a router object with a lazy `routes` getter.
+ * Accessing `.routes` at module top-level fails before content-type registration.
  */
 
 import { factories } from '@strapi/strapi';
 
-const coreRouter = factories.createCoreRouter('api::track.track');
+// Base core router (lazy — .routes getter resolves after bootstrap)
+const router = factories.createCoreRouter('api::track.track') as any;
 
-// .routes can be a getter (function) or a plain array — resolve accordingly
-const coreRoutes: any[] =
-  typeof coreRouter.routes === 'function'
-    ? coreRouter.routes()
-    : coreRouter.routes;
+// Wrap to inject custom routes alongside core ones
+const originalRoutesDescriptor = Object.getOwnPropertyDescriptor(
+  router,
+  'routes'
+);
 
-// Custom geo routes (handler strings are resolved by Strapi at runtime)
 const customRoutes = [
   {
-    method: 'GET' as const,
+    method: 'GET',
     path: '/tracks/nearby',
     handler: 'track.nearby',
-    config: {
-      auth: false,
-    },
+    config: { auth: false },
   },
   {
-    method: 'GET' as const,
+    method: 'GET',
     path: '/tracks/:id/waypoints',
     handler: 'track.waypoints',
-    config: {
-      auth: false,
-    },
+    config: { auth: false },
   },
   {
-    method: 'GET' as const,
+    method: 'GET',
     path: '/tracks/:id/simplify',
     handler: 'track.simplify',
-    config: {
-      auth: false,
-    },
+    config: { auth: false },
   },
 ];
 
-export default [...coreRoutes, ...customRoutes];
+Object.defineProperty(router, 'routes', {
+  get() {
+    const core = originalRoutesDescriptor?.get
+      ? originalRoutesDescriptor.get.call(router)
+      : originalRoutesDescriptor?.value ?? [];
+    const coreArr = typeof core === 'function' ? core() : core;
+    return [...coreArr, ...customRoutes];
+  },
+  enumerable: true,
+  configurable: true,
+});
+
+export default router;

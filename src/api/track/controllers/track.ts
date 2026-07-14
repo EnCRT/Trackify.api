@@ -1,20 +1,196 @@
 /**
- * track controller — core CRUD + geo endpoints
+ * Track controller — core CRUD + RBAC filtering + GeoJSON validation + geo endpoints
  */
 
 import { factories } from '@strapi/strapi';
+import {
+  validateGeoJSONGeometry,
+  extractWaypoints,
+} from '../../../utils/geojson-validator';
 
 export default factories.createCoreController(
   'api::track.track',
   ({ strapi }) => ({
-    /**
-     * GET /api/tracks/:id/simplify?tolerance=0.001&zoom=10
-     *
-     * Returns the track with its route_geojson simplified using
-     * ST_SimplifyPreserveTopology (Douglas-Peucker). Accepts either
-     * a raw tolerance in WGS84 degrees, or a zoom level (1-18)
-     * which maps to pre-defined tolerances.
-     */
+    // ──────────────────────────────────────────────────────────────
+    // Override find: RBAC — users see only their own tracks
+    // ──────────────────────────────────────────────────────────────
+    async find(ctx) {
+      const { state } = ctx;
+      const user = state.user;
+
+      const isAdmin =
+        user?.roles?.some(
+          (r: any) => r.type === 'admin' || r.code === 'trackify-super-admin'
+        );
+
+      if (!isAdmin && user) {
+        ctx.query = {
+          ...ctx.query,
+          filters: {
+            $and: [
+              ctx.query.filters || {},
+              { user: { id: { $eq: user.id } } },
+            ],
+          },
+        };
+      }
+
+      return super.find(ctx);
+    },
+
+    // ──────────────────────────────────────────────────────────────
+    // Override findOne: RBAC
+    // ──────────────────────────────────────────────────────────────
+    async findOne(ctx) {
+      const { state } = ctx;
+      const user = state.user;
+
+      const entity = await super.findOne(ctx);
+      if (!entity) return entity;
+
+      const data = (entity as any)?.data ?? entity;
+      const isAdmin =
+        user?.roles?.some(
+          (r: any) => r.type === 'admin' || r.code === 'trackify-super-admin'
+        );
+
+      if (!isAdmin && user && data?.user?.id !== user.id) {
+        return ctx.forbidden('You can only access your own tracks');
+      }
+
+      return entity;
+    },
+
+    // ──────────────────────────────────────────────────────────────
+    // Override create: validate GeoJSON coordinates
+    // ──────────────────────────────────────────────────────────────
+    async create(ctx) {
+      const { data } = ctx.request.body || {};
+
+      // Validate GeoJSON if present
+      if (data?.route_geojson) {
+        const errors = validateGeoJSONGeometry(data.route_geojson);
+        if (errors.length > 0) {
+          return ctx.badRequest('GeoJSON validation failed', { errors });
+        }
+      }
+
+      // Auto-assign authenticated user
+      if (ctx.state.user) {
+        ctx.request.body.data = {
+          ...(ctx.request.body.data || {}),
+          user: ctx.state.user.id,
+        };
+      }
+
+      return super.create(ctx);
+    },
+
+    // ──────────────────────────────────────────────────────────────
+    // Override update: validate GeoJSON coordinates
+    // ──────────────────────────────────────────────────────────────
+    async update(ctx) {
+      const { data } = ctx.request.body || {};
+
+      // Validate GeoJSON if present
+      if (data?.route_geojson) {
+        const errors = validateGeoJSONGeometry(data.route_geojson);
+        if (errors.length > 0) {
+          return ctx.badRequest('GeoJSON validation failed', { errors });
+        }
+      }
+
+      // RBAC: verify ownership before allowing update
+      if (ctx.state.user) {
+        const existing = await strapi
+          .service('api::track.track')
+          .findOne(ctx.params.id, { populate: ['user'] });
+
+        const isAdmin = ctx.state.user.roles?.some(
+          (r: any) => r.type === 'admin' || r.code === 'trackify-super-admin'
+        );
+
+        if (!isAdmin && existing?.user?.id !== ctx.state.user.id) {
+          return ctx.forbidden('You can only update your own tracks');
+        }
+      }
+
+      return super.update(ctx);
+    },
+
+    // ──────────────────────────────────────────────────────────────
+    // Override delete: RBAC
+    // ──────────────────────────────────────────────────────────────
+    async delete(ctx) {
+      if (ctx.state.user) {
+        const existing = await strapi
+          .service('api::track.track')
+          .findOne(ctx.params.id, { populate: ['user'] });
+
+        const isAdmin = ctx.state.user.roles?.some(
+          (r: any) => r.type === 'admin' || r.code === 'trackify-super-admin'
+        );
+
+        if (!isAdmin && existing?.user?.id !== ctx.state.user.id) {
+          return ctx.forbidden('You can only delete your own tracks');
+        }
+      }
+
+      return super.delete(ctx);
+    },
+
+    // ──────────────────────────────────────────────────────────────
+    // Custom: GET /api/tracks/:id/waypoints
+    // List all waypoints from route_geojson with optional bbox filter
+    // ──────────────────────────────────────────────────────────────
+    async waypoints(ctx) {
+      const { id } = ctx.params;
+      const { bbox } = ctx.query;
+
+      try {
+        const track = await strapi
+          .service('api::track.track')
+          .findOne(id, { populate: [] });
+
+        if (!track) {
+          return ctx.notFound('Track not found');
+        }
+
+        if (!track.route_geojson) {
+          return { data: [], meta: { total: 0 } };
+        }
+
+        let points = extractWaypoints(track.route_geojson);
+
+        // Optional bbox filter: minLon,minLat,maxLon,maxLat
+        if (bbox) {
+          const parts = (bbox as string).split(',').map(Number);
+          if (parts.length === 4 && parts.every((n) => !isNaN(n))) {
+            const [minLon, minLat, maxLon, maxLat] = parts;
+            points = points.filter(
+              (p) =>
+                p.lon >= minLon &&
+                p.lon <= maxLon &&
+                p.lat >= minLat &&
+                p.lat <= maxLat
+            );
+          } else {
+            return ctx.badRequest(
+              'bbox must be: minLon,minLat,maxLon,maxLat (4 comma-separated numbers)'
+            );
+          }
+        }
+
+        return { data: points, meta: { total: points.length } };
+      } catch (err: any) {
+        strapi.log.error('[track.waypoints]', err);
+        return ctx.internalServerError('Failed to extract waypoints');
+      }
+    },
+
+    // ──────────────────────────────────────────────────────────────
+    // Custom: GET /api/tracks/:id/simplify
+    // ──────────────────────────────────────────────────────────────
     async simplify(ctx) {
       const { id } = ctx.params;
       const { tolerance, zoom } = ctx.query;
@@ -22,7 +198,6 @@ export default factories.createCoreController(
       let tol: number;
 
       if (zoom) {
-        // Lazy-load the utility only when zoom-based tolerance is requested
         const { toleranceForZoom } = await import(
           '../../../utils/douglas-peucker'
         );
@@ -54,18 +229,9 @@ export default factories.createCoreController(
       }
     },
 
-    /**
-     * GET /api/tracks/nearby?lat=X&lon=Y&radius=5000&tolerance=0.0001
-     *
-     * Returns tracks whose route_geojson is within `radius` meters
-     * of the given point (lat, lon). Uses ST_DWithin for spatial filtering.
-     *
-     * Query params:
-     *   lat, lon  — center point (WGS84)
-     *   radius    — search radius in meters (default 5000)
-     *   tolerance — optional Douglas-Peucker tolerance for simplification
-     *               (omit for full-resolution tracks)
-     */
+    // ──────────────────────────────────────────────────────────────
+    // Custom: GET /api/tracks/nearby
+    // ──────────────────────────────────────────────────────────────
     async nearby(ctx) {
       const { lat, lon, radius = '5000' } = ctx.query;
 
@@ -96,40 +262,8 @@ export default factories.createCoreController(
       }
     },
 
-    /**
-     * GET /api/tracks/:id/waypoints?bbox=minLon,minLat,maxLon,maxLat
-     *
-     * Returns individual waypoints (coordinate pairs) from a track's
-     * route_geojson that fall within the given bounding box.
-     *
-     * Query params:
-     *   bbox — comma-separated: minLon,minLat,maxLon,maxLat (WGS84)
-     */
-    async waypoints(ctx) {
-      const { id } = ctx.params;
-      const { bbox } = ctx.query;
-
-      if (!bbox) {
-        return ctx.badRequest('bbox query param is required (minLon,minLat,maxLon,maxLat)');
-      }
-
-      const parts = (bbox as string).split(',').map(Number);
-      if (parts.length !== 4 || parts.some(isNaN)) {
-        return ctx.badRequest('bbox must be: minLon,minLat,maxLon,maxLat (4 comma-separated numbers)');
-      }
-
-      const [minLon, minLat, maxLon, maxLat] = parts;
-
-      try {
-        const points = await strapi
-          .service('api::track.track')
-          .findWaypointsInBbox(id, minLon, minLat, maxLon, maxLat);
-
-        return { data: points, meta: { count: points.length } };
-      } catch (err: any) {
-        strapi.log.error('[track.waypoints]', err);
-        return ctx.internalServerError('Waypoint query failed');
-      }
-    },
+    // ──────────────────────────────────────────────────────────────
+    // Custom: GET /api/tracks/nearby?lat=X&lon=Y&radius=5000&tolerance=0.0001
+    // Already implemented above
   })
 );

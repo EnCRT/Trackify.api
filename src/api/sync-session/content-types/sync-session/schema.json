@@ -1,0 +1,48 @@
+{
+  "kind": "collectionType",
+  "collectionName": "sync_sessions",
+  "info": {
+    "singularName": "sync-session",
+    "pluralName": "sync-sessions",
+    "displayName": "SyncSession",
+    "description": "Сессия синхронизации треков с устройства на сервер"
+  },
+  "options": {
+    "draftAndPublish": false,
+    "comment": ""
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "device": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::device.device",
+      "inversedBy": "sync_sessions"
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": ["pending", "in_progress", "completed", "failed"],
+      "default": "pending",
+      "required": true
+    },
+    "started_at": {
+      "type": "datetime"
+    },
+    "ended_at": {
+      "type": "datetime"
+    },
+    "tracks_synced": {
+      "type": "integer",
+      "default": 0,
+      "min": 0
+    },
+    "error_log": {
+      "type": "json"
+    },
+    "user": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user"
+    }
+  }
+}

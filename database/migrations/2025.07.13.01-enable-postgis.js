@@ -3,6 +3,8 @@
 /**
  * Migration: Enable PostGIS + GIST spatial index for Track routes.
  *
+ * This migration is PostgreSQL-only. On SQLite it is a no-op.
+ *
  * Strapi 5 auto-creates columns from schema.json diffs during its own
  * migration phase, so this migration assumes the `route_geojson` column
  * already exists (or will exist by the time Knex runs this).
@@ -12,6 +14,14 @@
  * @param {import('knex').Knex} knex
  */
 async function up(knex) {
+  const client = knex.client.config.client;
+  if (client !== 'postgres' && client !== 'postgresql' && client !== 'pg') {
+    console.log(
+      `[migration:postgis] Skipped — client is "${client}", only PostgreSQL supports PostGIS.`
+    );
+    return;
+  }
+
   // 1. Enable PostGIS extension
   await knex.raw('CREATE EXTENSION IF NOT EXISTS postgis;');
 
@@ -29,6 +39,14 @@ async function up(knex) {
  * @param {import('knex').Knex} knex
  */
 async function down(knex) {
+  const client = knex.client.config.client;
+  if (client !== 'postgres' && client !== 'postgresql' && client !== 'pg') {
+    console.log(
+      `[migration:postgis] Skipped — client is "${client}", no PostGIS to remove.`
+    );
+    return;
+  }
+
   // Drop the index
   await knex.raw('DROP INDEX IF EXISTS idx_tracks_route_geom;');
 

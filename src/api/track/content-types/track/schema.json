@@ -41,6 +41,17 @@
     "route_geojson": {
       "type": "json"
     },
+    "user": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "device": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::device.device",
+      "inversedBy": "tracks"
+    },
     "events": {
       "type": "relation",
       "relation": "oneToMany",
