@@ -1,0 +1,13 @@
+# Auto-detect text files and normalize line endings to LF in the repo
+# This prevents Windows CRLF from breaking Docker builds and Linux deployments
+* text=auto eol=lf
+
+# Binary files — preserve as-is
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.db binary
+*.sqlite binary
+*.sqlite3 binary

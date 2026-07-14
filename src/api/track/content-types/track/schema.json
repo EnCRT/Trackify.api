@@ -1,0 +1,51 @@
+{
+  "kind": "collectionType",
+  "collectionName": "tracks",
+  "info": {
+    "singularName": "track",
+    "pluralName": "tracks",
+    "displayName": "Track",
+    "description": "Гоночный трек / трасса"
+  },
+  "options": {
+    "draftAndPublish": true,
+    "comment": ""
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string",
+      "required": true,
+      "unique": true,
+      "maxLength": 255
+    },
+    "description": {
+      "type": "richtext"
+    },
+    "location": {
+      "type": "string",
+      "maxLength": 255
+    },
+    "length_meters": {
+      "type": "decimal"
+    },
+    "country": {
+      "type": "string",
+      "maxLength": 100
+    },
+    "image": {
+      "type": "media",
+      "allowedTypes": ["images"],
+      "multiple": false
+    },
+    "route_geojson": {
+      "type": "json"
+    },
+    "events": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::event.event",
+      "mappedBy": "track"
+    }
+  }
+}

@@ -1,0 +1,59 @@
+# Node
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Dependencies in non-root locations
+.git
+.idea
+.vscode
+
+# Environment (secrets)
+.env
+.env.local
+.env.*.local
+
+# Build output (will be rebuilt in Docker)
+dist
+build
+.strapi
+.tsbuildinfo
+
+# Temp / cache
+.tmp
+.cache
+*.log
+*.sqlite
+*.sqlite3
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Dev scripts (not needed in production)
+config_perms.py
+login_resp.json
+
+# Tests
+coverage
+.nyc_output
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# GitHub
+.github
+.gitignore
+.gitattributes
+
+# Docs
+*.md
+!DEPLOY.md
+
+# Strapi cloud
+.strapi-updater.json
+.strapi-cloud.json

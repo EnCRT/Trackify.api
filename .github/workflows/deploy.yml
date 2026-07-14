@@ -1,0 +1,71 @@
+# =============================================================================
+# Trackify.API — CI/CD Pipeline
+#
+# Triggers:
+#   push to main    → build + deploy to Railway
+#   pull_request    → build only (validate Dockerfile)
+#
+# Secrets required in GitHub repo settings:
+#   RAILWAY_TOKEN   — from `railway login --ci` or Railway dashboard → Tokens
+# =============================================================================
+
+name: Deploy to Railway
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ---- Build Check (runs on every PR & push) ----
+  build:
+    name: Build Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Strapi
+        run: npm run build
+
+      - name: Validate Docker build
+        run: docker build -t trackify-api:${{ github.sha }} .
+
+  # ---- Deploy (push to main only) ----
+  deploy:
+    name: Deploy to Railway
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    needs: build
+    runs-on: ubuntu-latest
+    concurrency:
+      group: railway-deploy
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: |
+          curl -fsSL https://railway.com/install.sh | sh
+          echo "$HOME/.railway/bin" >> $GITHUB_PATH
+
+      - name: Deploy to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway up --service trackify-api --detach
