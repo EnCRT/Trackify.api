@@ -1,0 +1,68 @@
+# =============================================================================
+# Trackify.API — Render Blueprint (infrastructure-as-code)
+# =============================================================================
+# Render auto-detects this file when you connect your GitHub repo.
+# It creates a Web Service from the Dockerfile and configures everything.
+#
+# Free Tier limits:
+#   - 512 MB RAM, 0.1 vCPU
+#   - Spins down after 15 min inactivity (cold start ~1 min)
+#   - 750 hours/month runtime (covers 1 instance 24/7)
+#   - 100 GB egress/month
+#   - Mitigation: cron-job.org HTTP ping every 10 min to keep alive
+# =============================================================================
+
+services:
+  - type: web
+    name: trackify-api
+    runtime: docker
+    repo: https://github.com/YOUR_USERNAME/trackify-api
+    plan: free
+    region: frankfurt  # or oregon, singapore — pick closest to users
+    branch: main
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /_health
+    numInstances: 1
+    
+    envVars:
+      # ---- Server ----
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: 1337
+      - key: NODE_ENV
+        value: production
+      
+      # ---- Database: Supabase PostgreSQL ----
+      # IMPORTANT: Set DATABASE_URL from your Supabase dashboard:
+      #   Settings → Database → Connection string → URI
+      #   Format: postgresql://postgres.[REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres
+      #   Use Session Pooler (port 6543) for serverless/Strapi compatibility
+      - key: DATABASE_CLIENT
+        value: postgres
+      - key: DATABASE_URL
+        sync: false  # Set manually in Render dashboard (contains password)
+      
+      # ---- Secrets (generate with: openssl rand -base64 32) ----
+      - key: APP_KEYS
+        generateValue: true
+        value: placeholder_change_me_in_dashboard
+      - key: API_TOKEN_SALT
+        generateValue: true
+        value: placeholder_change_me_in_dashboard
+      - key: ADMIN_JWT_SECRET
+        generateValue: true
+        value: placeholder_change_me_in_dashboard
+      - key: JWT_SECRET
+        generateValue: true
+        value: placeholder_change_me_in_dashboard
+      - key: TRANSFER_TOKEN_SALT
+        generateValue: true
+        value: placeholder_change_me_in_dashboard
+      - key: ENCRYPTION_KEY
+        generateValue: true
+        value: placeholder_change_me_in_dashboard
+      
+      # ---- Auth: Supabase / Google ----
+      - key: GOOGLE_CLIENT_ID
+        sync: false

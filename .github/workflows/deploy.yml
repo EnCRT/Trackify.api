@@ -2,14 +2,18 @@
 # Trackify.API — CI/CD Pipeline
 #
 # Triggers:
-#   push to main    → build + deploy to Railway
-#   pull_request    → build only (validate Dockerfile)
+#   pull_request    → build check (validate Dockerfile + Strapi build)
+#   push to main    → Render auto-deploys via native GitHub integration
 #
-# Secrets required in GitHub repo settings:
-#   RAILWAY_TOKEN   — from `railway login --ci` or Railway dashboard → Tokens
+# Deployment:
+#   Render Free Tier auto-deploys on every push to the connected branch.
+#   No GitHub Actions deployment step needed — Render handles it natively.
+#   Configured via render.yaml in the repo root.
+#
+#   Manual deploy trigger (optional): `curl -X POST $RENDER_DEPLOY_HOOK`
 # =============================================================================
 
-name: Deploy to Railway
+name: CI
 
 on:
   push:
@@ -21,7 +25,7 @@ env:
   NODE_VERSION: '20'
 
 jobs:
-  # ---- Build Check (runs on every PR & push) ----
+  # ---- Build Check (validates Docker image builds correctly) ----
   build:
     name: Build Check
     runs-on: ubuntu-latest
@@ -45,27 +49,20 @@ jobs:
       - name: Validate Docker build
         run: docker build -t trackify-api:${{ github.sha }} .
 
-  # ---- Deploy (push to main only) ----
-  deploy:
-    name: Deploy to Railway
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
-    needs: build
+  # ---- Lint (if eslint is configured) ----
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
-    concurrency:
-      group: railway-deploy
-      cancel-in-progress: false
-
+    if: false  # Enable when eslint is set up
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Install Railway CLI
-        run: |
-          curl -fsSL https://railway.com/install.sh | sh
-          echo "$HOME/.railway/bin" >> $GITHUB_PATH
-
-      - name: Deploy to Railway
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: |
-          railway up --service trackify-api --detach
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Lint
+        run: npm run lint
