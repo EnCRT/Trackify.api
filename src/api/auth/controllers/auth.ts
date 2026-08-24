@@ -63,16 +63,40 @@ export default {
       const jwtService = strapi.plugin('users-permissions').service('jwt');
       const userService = strapi.plugin('users-permissions').service('user');
 
+      // The default role is REQUIRED: the users-permissions auth strategy reads
+      // `user.role.id` to build the content-API ability, and a role-less user
+      // makes every protected request fail with 401 (the strategy swallows the
+      // TypeError and reports "not authenticated"). Mirror the built-in OAuth
+      // provider: resolve the default role and assign it on create + backfill.
+      const advancedSettings = await strapi
+        .store({ type: 'plugin', name: 'users-permissions' })
+        .get({ key: 'advanced' });
+      const defaultRole = await strapi.db
+        .query('plugin::users-permissions.role')
+        .findOne({ where: { type: (advancedSettings as any)?.default_role ?? 'authenticated' } });
+
       // Try to find existing user by email
       let users = await userQuery.findMany({
         filters: { email },
         limit: 1,
+        populate: ['role'],
       });
 
       let user: any;
 
       if (users && users.length > 0) {
         user = users[0];
+        // Backfill: users created before role assignment existed have no role.
+        if (!user.role) {
+          user = await strapi.db
+            .query('plugin::users-permissions.user')
+            .update({
+              where: { id: user.id },
+              data: { role: defaultRole.id },
+              populate: ['role'],
+            });
+          strapi.log.info(`[Google Auth] Backfilled role for ${email}`);
+        }
       } else {
         // Create new user
         const username =
@@ -86,6 +110,7 @@ export default {
           password: googleId || crypto.randomUUID(),
           confirmed: true,
           provider: 'google',
+          role: defaultRole.id,
           // Store display name
           firstname: name?.split(' ')[0] || '',
           lastname: name?.split(' ').slice(1).join(' ') || '',
