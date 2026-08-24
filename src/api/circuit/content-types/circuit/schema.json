@@ -1,0 +1,132 @@
+{
+  "kind": "collectionType",
+  "collectionName": "circuits",
+  "info": {
+    "singularName": "circuit",
+    "pluralName": "circuits",
+    "displayName": "Circuit",
+    "description": "Гоночная трасса / автодром (место, где катаются). Ранее назывался Track."
+  },
+  "options": {
+    "draftAndPublish": true,
+    "comment": "Renamed from Track (B-01). Layout + gates added (B-03)."
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string",
+      "required": true,
+      "maxLength": 255
+    },
+    "slug": {
+      "type": "uid",
+      "targetField": "name"
+    },
+    "description": {
+      "type": "richtext"
+    },
+    "location": {
+      "type": "string",
+      "maxLength": 255
+    },
+    "country": {
+      "type": "string",
+      "maxLength": 100
+    },
+    "length_meters": {
+      "type": "decimal"
+    },
+    "layout": {
+      "type": "enumeration",
+      "enum": ["closed_loop", "point_to_point"],
+      "default": "closed_loop",
+      "required": true
+    },
+    "gates": {
+      "type": "json"
+    },
+    "type": {
+      "type": "enumeration",
+      "enum": ["road_track", "rally", "kart", "offroad", "drag", "street", "mountain"]
+    },
+    "surface": {
+      "type": "enumeration",
+      "enum": ["asphalt", "mixed", "dirt", "gravel", "ice", "snow"]
+    },
+    "variant_name": {
+      "type": "string",
+      "maxLength": 100
+    },
+    "latitude": {
+      "type": "decimal"
+    },
+    "longitude": {
+      "type": "decimal"
+    },
+    "altitude_m": {
+      "type": "decimal"
+    },
+    "timezone": {
+      "type": "string",
+      "maxLength": 64
+    },
+    "route_geojson": {
+      "type": "json"
+    },
+    "elevation_profile": {
+      "type": "json"
+    },
+    "official_record_ms": {
+      "type": "biginteger"
+    },
+    "community_record_ms": {
+      "type": "biginteger"
+    },
+    "source": {
+      "type": "enumeration",
+      "enum": ["official", "community", "user_generated"],
+      "default": "user_generated"
+    },
+    "verified": {
+      "type": "boolean",
+      "default": false
+    },
+    "website_url": {
+      "type": "string",
+      "maxLength": 500
+    },
+    "wiki_url": {
+      "type": "string",
+      "maxLength": 500
+    },
+    "image": {
+      "type": "media",
+      "allowedTypes": ["images"],
+      "multiple": false
+    },
+    "photos": {
+      "type": "media",
+      "allowedTypes": ["images"],
+      "multiple": true
+    },
+    "deleted_at": {
+      "type": "datetime"
+    },
+    "variant_of": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::circuit.circuit"
+    },
+    "created_by_user": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "events": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::event.event",
+      "mappedBy": "circuit"
+    }
+  }
+}

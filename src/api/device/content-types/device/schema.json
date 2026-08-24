@@ -5,11 +5,11 @@
     "singularName": "device",
     "pluralName": "devices",
     "displayName": "Device",
-    "description": "Устройство для записи треков (GPS-трекер, телефон)"
+    "description": "GNSS-логгер (ESP32-трекер) пилота. Идентифицируется неизменяемым serial_number."
   },
   "options": {
     "draftAndPublish": false,
-    "comment": ""
+    "comment": "B-05: firmware/serial fields; `tracks` relation → `rides`. K-02: dropped device_identifier/settings_json/last_battery_percent/last_sync_at/paired_at (unused telemetry)."
   },
   "pluginOptions": {},
   "attributes": {
@@ -18,24 +18,43 @@
       "required": true,
       "maxLength": 255
     },
-    "device_identifier": {
-      "type": "uid",
-      "targetField": "name",
-      "required": true
+    "serial_number": {
+      "type": "string",
+      "unique": true,
+      "maxLength": 100
     },
     "model": {
       "type": "string",
       "maxLength": 100
+    },
+    "hardware_revision": {
+      "type": "string",
+      "maxLength": 50
+    },
+    "firmware_version": {
+      "type": "string",
+      "maxLength": 50
+    },
+    "mac_address": {
+      "type": "string",
+      "maxLength": 32
+    },
+    "default_sample_rate_hz": {
+      "type": "integer",
+      "default": 25
+    },
+    "last_seen_at": {
+      "type": "datetime"
     },
     "user": {
       "type": "relation",
       "relation": "manyToOne",
       "target": "plugin::users-permissions.user"
     },
-    "tracks": {
+    "rides": {
       "type": "relation",
       "relation": "oneToMany",
-      "target": "api::track.track",
+      "target": "api::ride.ride",
       "mappedBy": "device"
     },
     "sync_sessions": {

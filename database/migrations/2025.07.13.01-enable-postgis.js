@@ -26,8 +26,17 @@ async function up(knex) {
   await knex.raw('CREATE EXTENSION IF NOT EXISTS postgis;');
 
   // 2. Create GIST index on geometry extracted from route_geojson JSON
-  // Using an expression index: ST_GeomFromGeoJSON converts GeoJSON → geometry
-  // We add IF NOT EXISTS so it's safe to re-run
+  // Check if table exists first — Strapi creates content-type tables during
+  // schema sync, which may happen AFTER custom migrations run.
+  const hasTracks = await knex.schema.hasTable('tracks');
+  if (!hasTracks) {
+    console.log(
+      '[migration:postgis] Skipped index — "tracks" table does not exist yet. ' +
+      'It will be created by Strapi schema sync. Re-run this migration afterwards.'
+    );
+    return;
+  }
+
   await knex.raw(`
     CREATE INDEX IF NOT EXISTS idx_tracks_route_geom
     ON tracks

@@ -1,5 +1,7 @@
 /**
- * Track router — core CRUD + custom geo routes
+ * Circuit router — core CRUD + custom geo routes.
+ *
+ * Renamed from the old `track` router (task B-01). Paths /tracks → /circuits.
  *
  * Strapi 5 note: routes must export a router object with a lazy `routes` getter.
  * Accessing `.routes` at module top-level fails before content-type registration.
@@ -7,10 +9,8 @@
 
 import { factories } from '@strapi/strapi';
 
-// Base core router (lazy — .routes getter resolves after bootstrap)
-const router = factories.createCoreRouter('api::track.track') as any;
+const router = factories.createCoreRouter('api::circuit.circuit') as any;
 
-// Wrap to inject custom routes alongside core ones
 const originalRoutesDescriptor = Object.getOwnPropertyDescriptor(
   router,
   'routes'
@@ -19,20 +19,26 @@ const originalRoutesDescriptor = Object.getOwnPropertyDescriptor(
 const customRoutes = [
   {
     method: 'GET',
-    path: '/tracks/nearby',
-    handler: 'track.nearby',
+    path: '/circuits/nearby',
+    handler: 'circuit.nearby',
     config: { auth: false },
   },
   {
     method: 'GET',
-    path: '/tracks/:id/waypoints',
-    handler: 'track.waypoints',
+    path: '/circuits/:id/leaderboard',
+    handler: 'circuit.leaderboard',
     config: { auth: false },
   },
   {
     method: 'GET',
-    path: '/tracks/:id/simplify',
-    handler: 'track.simplify',
+    path: '/circuits/:id/waypoints',
+    handler: 'circuit.waypoints',
+    config: { auth: false },
+  },
+  {
+    method: 'GET',
+    path: '/circuits/:id/simplify',
+    handler: 'circuit.simplify',
     config: { auth: false },
   },
 ];
@@ -43,7 +49,9 @@ Object.defineProperty(router, 'routes', {
       ? originalRoutesDescriptor.get.call(router)
       : originalRoutesDescriptor?.value ?? [];
     const coreArr = typeof core === 'function' ? core() : core;
-    return [...coreArr, ...customRoutes];
+    // Custom routes first so static paths (e.g. /circuits/nearby) win over the
+    // core /circuits/:id param route.
+    return [...customRoutes, ...coreArr];
   },
   enumerable: true,
   configurable: true,

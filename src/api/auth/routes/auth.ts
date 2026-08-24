@@ -13,5 +13,24 @@ export default {
         policies: [],
       },
     },
+    {
+      method: 'POST',
+      path: '/auth/refresh',
+      handler: 'auth.refresh',
+      config: {
+        auth: false,
+        policies: [],
+      },
+    },
+    {
+      method: 'POST',
+      path: '/auth/logout',
+      handler: 'auth.logout',
+      config: {
+        auth: false,
+        policies: [],
+      },
+    },
   ],
 };
+

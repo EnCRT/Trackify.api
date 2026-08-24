@@ -5,25 +5,23 @@
     "singularName": "sync-session",
     "pluralName": "sync-sessions",
     "displayName": "SyncSession",
-    "description": "Сессия синхронизации треков с устройства на сервер"
+    "description": "Сессия синхронизации треков с устройства на сервер (BLE/WiFi/USB/импорт файла)."
   },
   "options": {
     "draftAndPublish": false,
-    "comment": ""
+    "comment": "B-09: added transport, bytes_transferred, files_synced, battery, duration, rides_created relation."
   },
   "pluginOptions": {},
   "attributes": {
-    "device": {
-      "type": "relation",
-      "relation": "manyToOne",
-      "target": "api::device.device",
-      "inversedBy": "sync_sessions"
-    },
     "status": {
       "type": "enumeration",
       "enum": ["pending", "in_progress", "completed", "failed"],
       "default": "pending",
       "required": true
+    },
+    "transport": {
+      "type": "enumeration",
+      "enum": ["ble", "wifi", "usb", "file_import"]
     },
     "started_at": {
       "type": "datetime"
@@ -31,18 +29,49 @@
     "ended_at": {
       "type": "datetime"
     },
+    "duration_ms": {
+      "type": "biginteger"
+    },
     "tracks_synced": {
       "type": "integer",
       "default": 0,
       "min": 0
     },
+    "bytes_transferred": {
+      "type": "biginteger"
+    },
+    "files_synced": {
+      "type": "json"
+    },
+    "device_battery_start": {
+      "type": "integer",
+      "min": 0,
+      "max": 100
+    },
+    "device_battery_end": {
+      "type": "integer",
+      "min": 0,
+      "max": 100
+    },
     "error_log": {
       "type": "json"
+    },
+    "device": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::device.device",
+      "inversedBy": "sync_sessions"
     },
     "user": {
       "type": "relation",
       "relation": "manyToOne",
       "target": "plugin::users-permissions.user"
+    },
+    "rides_created": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::ride.ride",
+      "mappedBy": "sync_session"
     }
   }
 }

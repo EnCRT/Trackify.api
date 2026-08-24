@@ -3,6 +3,7 @@
  */
 
 import { factories } from '@strapi/strapi';
+import { getAuthenticatedUser, isAdminUser } from '../../../utils/request-helpers';
 
 export default factories.createCoreController(
   'api::sync-session.sync-session' as any,
@@ -66,14 +67,30 @@ export default factories.createCoreController(
      * Override create — auto-assign the authenticated user.
      */
     async create(ctx) {
-      if (ctx.state.user) {
-        ctx.request.body.data = {
-          ...(ctx.request.body.data || {}),
-          user: ctx.state.user.id,
-        };
+      const user = ctx.state.user;
+
+      // NOTE: `user` is deliberately NOT injected into the request body.
+      // Strapi 5's input validation (throwRestrictedRelations) rejects relations
+      // to plugin::users-permissions.user in the body unless the caller role
+      // holds plugin::users-permissions.user.find — which must never be granted
+      // (it would let any user list all users). The owner is connected after
+      // create via the document service, which does not run route-level
+      // validation.
+      const response = await super.create(ctx);
+
+      const created = (response as any)?.data;
+      if (created?.documentId && user) {
+        await strapi.documents('api::sync-session.sync-session').update({
+          documentId: created.documentId,
+          data: { user: user.id } as any,
+        });
+        const withOwner = await strapi
+          .documents('api::sync-session.sync-session')
+          .findOne({ documentId: created.documentId, populate: ['user'] });
+        return { data: withOwner };
       }
 
-      return super.create(ctx);
+      return response;
     },
 
     /**
@@ -124,6 +141,44 @@ export default factories.createCoreController(
       }
 
       return super.delete(ctx);
+    },
+
+    /**
+     * POST /sync-sessions/:id/close — finalize a session (C-06).
+     * auth:false + manual auth so it works without a role grant.
+     */
+    async close(ctx) {
+      const user = await getAuthenticatedUser(ctx);
+      if (!user) return ctx.unauthorized('Authentication required');
+
+      const { id } = ctx.params;
+      const session = await strapi
+        .documents('api::sync-session.sync-session')
+        .findOne({ documentId: id, populate: ['user'] });
+      if (!session) return ctx.notFound('Sync session not found');
+
+      if (!isAdminUser(user) && (session as any).user?.id !== user.id) {
+        return ctx.forbidden('You can only close your own sync sessions');
+      }
+
+      const body = ctx.request.body?.data || {};
+      const updated = await strapi.documents('api::sync-session.sync-session').update({
+        documentId: id,
+        data: {
+          status: body.status || 'completed',
+          ended_at: body.ended_at || new Date().toISOString(),
+          ...(body.device_battery_end !== undefined
+            ? { device_battery_end: body.device_battery_end }
+            : {}),
+          ...(body.files_synced !== undefined ? { files_synced: body.files_synced } : {}),
+          ...(body.bytes_transferred !== undefined
+            ? { bytes_transferred: body.bytes_transferred }
+            : {}),
+          ...(body.duration_ms !== undefined ? { duration_ms: body.duration_ms } : {}),
+        } as any,
+      });
+
+      return { data: updated };
     },
   })
 );

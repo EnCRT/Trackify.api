@@ -1,0 +1,78 @@
+{
+  "kind": "collectionType",
+  "collectionName": "profiles",
+  "info": {
+    "singularName": "profile",
+    "pluralName": "profiles",
+    "displayName": "Profile",
+    "description": "Профиль пилота (редактируемые данные поверх auth-пользователя): ник, фото, единицы, язык, таймзона, приватность, кэш-статистика."
+  },
+  "options": {
+    "draftAndPublish": false,
+    "comment": "Created in B-06. 1:1 with users-permissions.user. Auto-created on first Google login (auth.googleMobile). GET/PATCH /profiles/me added in C-04."
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "nickname": {
+      "type": "string",
+      "maxLength": 100
+    },
+    "first_name": {
+      "type": "string",
+      "maxLength": 100
+    },
+    "last_name": {
+      "type": "string",
+      "maxLength": 100
+    },
+    "photo_url": {
+      "type": "string",
+      "maxLength": 500
+    },
+    "units": {
+      "type": "enumeration",
+      "enum": ["metric", "imperial"],
+      "default": "metric",
+      "required": true
+    },
+    "language": {
+      "type": "string",
+      "maxLength": 10
+    },
+    "timezone": {
+      "type": "string",
+      "maxLength": 64
+    },
+    "privacy_default": {
+      "type": "enumeration",
+      "enum": ["public", "followers", "private", "unlisted"],
+      "default": "private",
+      "required": true
+    },
+    "supabase_uid": {
+      "type": "string",
+      "unique": true,
+      "maxLength": 64
+    },
+    "total_distance_m": {
+      "type": "float",
+      "default": 0
+    },
+    "total_time_ms": {
+      "type": "biginteger"
+    },
+    "rides_count": {
+      "type": "integer",
+      "default": 0,
+      "min": 0
+    },
+    "deleted_at": {
+      "type": "datetime"
+    },
+    "user": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
+    }
+  }
+}

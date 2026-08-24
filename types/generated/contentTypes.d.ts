@@ -441,29 +441,135 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiCircuitCircuit extends Struct.CollectionTypeSchema {
+  collectionName: 'circuits';
+  info: {
+    description: '\u0413\u043E\u043D\u043E\u0447\u043D\u0430\u044F \u0442\u0440\u0430\u0441\u0441\u0430 / \u0430\u0432\u0442\u043E\u0434\u0440\u043E\u043C (\u043C\u0435\u0441\u0442\u043E, \u0433\u0434\u0435 \u043A\u0430\u0442\u0430\u044E\u0442\u0441\u044F). \u0420\u0430\u043D\u0435\u0435 \u043D\u0430\u0437\u044B\u0432\u0430\u043B\u0441\u044F Track.';
+    displayName: 'Circuit';
+    pluralName: 'circuits';
+    singularName: 'circuit';
+  };
+  options: {
+    comment: 'Renamed from Track (B-01). Layout + gates added (B-03).';
+    draftAndPublish: true;
+  };
+  attributes: {
+    altitude_m: Schema.Attribute.Decimal;
+    community_record_ms: Schema.Attribute.BigInteger;
+    country: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 100;
+      }>;
+    created_by_user: Schema.Attribute.Relation<
+      'manyToOne',
+      'plugin::users-permissions.user'
+    >;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    deleted_at: Schema.Attribute.DateTime;
+    description: Schema.Attribute.RichText;
+    elevation_profile: Schema.Attribute.JSON;
+    events: Schema.Attribute.Relation<'oneToMany', 'api::event.event'>;
+    gates: Schema.Attribute.JSON;
+    image: Schema.Attribute.Media<'images'>;
+    latitude: Schema.Attribute.Decimal;
+    layout: Schema.Attribute.Enumeration<['closed_loop', 'point_to_point']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'closed_loop'>;
+    length_meters: Schema.Attribute.Decimal;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::circuit.circuit'
+    > &
+      Schema.Attribute.Private;
+    location: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 255;
+      }>;
+    longitude: Schema.Attribute.Decimal;
+    name: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 255;
+      }>;
+    official_record_ms: Schema.Attribute.BigInteger;
+    photos: Schema.Attribute.Media<'images', true>;
+    publishedAt: Schema.Attribute.DateTime;
+    route_geojson: Schema.Attribute.JSON;
+    slug: Schema.Attribute.UID<'name'>;
+    source: Schema.Attribute.Enumeration<
+      ['official', 'community', 'user_generated']
+    > &
+      Schema.Attribute.DefaultTo<'user_generated'>;
+    surface: Schema.Attribute.Enumeration<
+      ['asphalt', 'mixed', 'dirt', 'gravel', 'ice', 'snow']
+    >;
+    timezone: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 64;
+      }>;
+    type: Schema.Attribute.Enumeration<
+      ['road_track', 'rally', 'kart', 'offroad', 'drag', 'street', 'mountain']
+    >;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    variant_name: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 100;
+      }>;
+    variant_of: Schema.Attribute.Relation<'manyToOne', 'api::circuit.circuit'>;
+    verified: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    website_url: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 500;
+      }>;
+    wiki_url: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 500;
+      }>;
+  };
+}
+
 export interface ApiDeviceDevice extends Struct.CollectionTypeSchema {
   collectionName: 'devices';
   info: {
-    description: '\u0423\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E \u0434\u043B\u044F \u0437\u0430\u043F\u0438\u0441\u0438 \u0442\u0440\u0435\u043A\u043E\u0432 (GPS-\u0442\u0440\u0435\u043A\u0435\u0440, \u0442\u0435\u043B\u0435\u0444\u043E\u043D)';
+    description: 'GNSS-\u043B\u043E\u0433\u0433\u0435\u0440 (ESP32-\u0442\u0440\u0435\u043A\u0435\u0440) \u043F\u0438\u043B\u043E\u0442\u0430. \u0418\u0434\u0435\u043D\u0442\u0438\u0444\u0438\u0446\u0438\u0440\u0443\u0435\u0442\u0441\u044F \u043D\u0435\u0438\u0437\u043C\u0435\u043D\u044F\u0435\u043C\u044B\u043C serial_number.';
     displayName: 'Device';
     pluralName: 'devices';
     singularName: 'device';
   };
   options: {
-    comment: '';
+    comment: 'B-05: firmware/serial fields; `tracks` relation \u2192 `rides`. K-02: dropped device_identifier/settings_json/last_battery_percent/last_sync_at/paired_at (unused telemetry).';
     draftAndPublish: false;
   };
   attributes: {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    device_identifier: Schema.Attribute.UID<'name'> & Schema.Attribute.Required;
+    default_sample_rate_hz: Schema.Attribute.Integer &
+      Schema.Attribute.DefaultTo<25>;
+    firmware_version: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 50;
+      }>;
+    hardware_revision: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 50;
+      }>;
+    last_seen_at: Schema.Attribute.DateTime;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
       'api::device.device'
     > &
       Schema.Attribute.Private;
+    mac_address: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 32;
+      }>;
     model: Schema.Attribute.String &
       Schema.Attribute.SetMinMaxLength<{
         maxLength: 100;
@@ -474,11 +580,16 @@ export interface ApiDeviceDevice extends Struct.CollectionTypeSchema {
         maxLength: 255;
       }>;
     publishedAt: Schema.Attribute.DateTime;
+    rides: Schema.Attribute.Relation<'oneToMany', 'api::ride.ride'>;
+    serial_number: Schema.Attribute.String &
+      Schema.Attribute.Unique &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 100;
+      }>;
     sync_sessions: Schema.Attribute.Relation<
       'oneToMany',
       'api::sync-session.sync-session'
     >;
-    tracks: Schema.Attribute.Relation<'oneToMany', 'api::track.track'>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -492,24 +603,30 @@ export interface ApiDeviceDevice extends Struct.CollectionTypeSchema {
 export interface ApiEventEvent extends Struct.CollectionTypeSchema {
   collectionName: 'events';
   info: {
-    description: '\u0422\u0440\u0435\u043A-\u0434\u0435\u043D\u044C / \u0437\u0430\u0435\u0437\u0434';
+    description: '\u0422\u0440\u0435\u043A-\u0434\u0435\u043D\u044C / \u043E\u0440\u0433\u0430\u043D\u0438\u0437\u043E\u0432\u0430\u043D\u043D\u044B\u0439 \u0437\u0430\u0435\u0437\u0434 \u043D\u0430 \u0442\u0440\u0430\u0441\u0441\u0435 \u0441 \u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u0430\u043C\u0438.';
     displayName: 'Event';
     pluralName: 'events';
     singularName: 'event';
   };
   options: {
-    comment: '';
+    comment: 'B-08: `track` relation \u2192 `circuit`; added organizer, participants, heats, location, cover_image, entry_fee, weather. `results` are derivable from heats\u2192rides (ranked by Ride.best_lap_ms), not stored as a relation.';
     draftAndPublish: true;
   };
   attributes: {
+    circuit: Schema.Attribute.Relation<'manyToOne', 'api::circuit.circuit'>;
+    cover_image: Schema.Attribute.Media<'images'>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     date: Schema.Attribute.DateTime & Schema.Attribute.Required;
     description: Schema.Attribute.RichText;
+    entry_fee: Schema.Attribute.Decimal;
+    heats: Schema.Attribute.Relation<'oneToMany', 'api::ride.ride'>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<'oneToMany', 'api::event.event'> &
       Schema.Attribute.Private;
+    location_lat: Schema.Attribute.Float;
+    location_lon: Schema.Attribute.Float;
     max_participants: Schema.Attribute.Integer &
       Schema.Attribute.SetMinMax<
         {
@@ -522,39 +639,59 @@ export interface ApiEventEvent extends Struct.CollectionTypeSchema {
       Schema.Attribute.SetMinMaxLength<{
         maxLength: 255;
       }>;
+    organizer: Schema.Attribute.Relation<
+      'manyToOne',
+      'plugin::users-permissions.user'
+    >;
+    participants: Schema.Attribute.Relation<
+      'manyToMany',
+      'plugin::users-permissions.user'
+    >;
     publishedAt: Schema.Attribute.DateTime;
     status: Schema.Attribute.Enumeration<
       ['planned', 'active', 'completed', 'cancelled']
     > &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'planned'>;
-    track: Schema.Attribute.Relation<'manyToOne', 'api::track.track'>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    weather: Schema.Attribute.JSON;
   };
 }
 
 export interface ApiMotorcycleMotorcycle extends Struct.CollectionTypeSchema {
   collectionName: 'motorcycles';
   info: {
-    description: '\u041C\u043E\u0442\u043E\u0446\u0438\u043A\u043B \u0443\u0447\u0430\u0441\u0442\u043D\u0438\u043A\u0430';
+    description: '\u0422\u0440\u0430\u043D\u0441\u043F\u043E\u0440\u0442 \u0432 \u0433\u0430\u0440\u0430\u0436\u0435 \u043F\u0438\u043B\u043E\u0442\u0430 (\u043C\u043E\u0442\u043E/\u0430\u0432\u0442\u043E/\u0432\u0435\u043B\u043E\u0441\u0438\u043F\u0435\u0434/\u0441\u043A\u0443\u0442\u0435\u0440/\u0434\u0440\u043E\u043D). \u0412\u0441\u0435\u0433\u0434\u0430 \u043F\u0440\u0438\u043D\u0430\u0434\u043B\u0435\u0436\u0438\u0442 \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044E.';
     displayName: 'Motorcycle';
     pluralName: 'motorcycles';
     singularName: 'motorcycle';
   };
   options: {
-    comment: '';
-    draftAndPublish: true;
+    comment: 'B-04: added user relation (required), kind, garage fields, rides inverse.';
+    draftAndPublish: false;
   };
   attributes: {
     brand: Schema.Attribute.String &
       Schema.Attribute.SetMinMaxLength<{
         maxLength: 100;
       }>;
+    color: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 50;
+      }>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    deleted_at: Schema.Attribute.DateTime;
+    displacement_cc: Schema.Attribute.Integer &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 1;
+        },
+        number
+      >;
     engine_cc: Schema.Attribute.Integer &
       Schema.Attribute.SetMinMax<
         {
@@ -564,6 +701,17 @@ export interface ApiMotorcycleMotorcycle extends Struct.CollectionTypeSchema {
         number
       >;
     image: Schema.Attribute.Media<'images'>;
+    is_active: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<true>;
+    is_favorite: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    kind: Schema.Attribute.Enumeration<
+      ['moto', 'car', 'bicycle', 'scooter', 'drone', 'other']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'moto'>;
+    license_plate: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 20;
+      }>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
@@ -579,10 +727,54 @@ export interface ApiMotorcycleMotorcycle extends Struct.CollectionTypeSchema {
       Schema.Attribute.SetMinMaxLength<{
         maxLength: 255;
       }>;
+    odometer_km: Schema.Attribute.Integer &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0;
+        },
+        number
+      >;
+    photos: Schema.Attribute.Media<'images', true>;
+    power_hp: Schema.Attribute.Integer &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0;
+        },
+        number
+      >;
     publishedAt: Schema.Attribute.DateTime;
+    purchased_at: Schema.Attribute.Date;
+    rides: Schema.Attribute.Relation<'oneToMany', 'api::ride.ride'>;
+    service_notes: Schema.Attribute.RichText;
+    sold_at: Schema.Attribute.Date;
+    tire_front: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 50;
+      }>;
+    tire_rear: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 50;
+      }>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    user: Schema.Attribute.Relation<
+      'manyToOne',
+      'plugin::users-permissions.user'
+    > &
+      Schema.Attribute.Required;
+    vin: Schema.Attribute.String &
+      Schema.Attribute.Private &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 20;
+      }>;
+    weight_kg: Schema.Attribute.Integer &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0;
+        },
+        number
+      >;
     year: Schema.Attribute.Integer &
       Schema.Attribute.SetMinMax<
         {
@@ -594,25 +786,259 @@ export interface ApiMotorcycleMotorcycle extends Struct.CollectionTypeSchema {
   };
 }
 
-export interface ApiSyncSessionSyncSession extends Struct.CollectionTypeSchema {
-  collectionName: 'sync_sessions';
+export interface ApiProfileProfile extends Struct.CollectionTypeSchema {
+  collectionName: 'profiles';
   info: {
-    description: '\u0421\u0435\u0441\u0441\u0438\u044F \u0441\u0438\u043D\u0445\u0440\u043E\u043D\u0438\u0437\u0430\u0446\u0438\u0438 \u0442\u0440\u0435\u043A\u043E\u0432 \u0441 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430 \u043D\u0430 \u0441\u0435\u0440\u0432\u0435\u0440';
-    displayName: 'SyncSession';
-    pluralName: 'sync-sessions';
-    singularName: 'sync-session';
+    description: '\u041F\u0440\u043E\u0444\u0438\u043B\u044C \u043F\u0438\u043B\u043E\u0442\u0430 (\u0440\u0435\u0434\u0430\u043A\u0442\u0438\u0440\u0443\u0435\u043C\u044B\u0435 \u0434\u0430\u043D\u043D\u044B\u0435 \u043F\u043E\u0432\u0435\u0440\u0445 auth-\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044F): \u043D\u0438\u043A, \u0444\u043E\u0442\u043E, \u0435\u0434\u0438\u043D\u0438\u0446\u044B, \u044F\u0437\u044B\u043A, \u0442\u0430\u0439\u043C\u0437\u043E\u043D\u0430, \u043F\u0440\u0438\u0432\u0430\u0442\u043D\u043E\u0441\u0442\u044C, \u043A\u044D\u0448-\u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043A\u0430.';
+    displayName: 'Profile';
+    pluralName: 'profiles';
+    singularName: 'profile';
   };
   options: {
-    comment: '';
+    comment: 'Created in B-06. 1:1 with users-permissions.user. Auto-created on first Google login (auth.googleMobile). GET/PATCH /profiles/me added in C-04.';
     draftAndPublish: false;
   };
   attributes: {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    deleted_at: Schema.Attribute.DateTime;
+    first_name: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 100;
+      }>;
+    language: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 10;
+      }>;
+    last_name: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 100;
+      }>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::profile.profile'
+    > &
+      Schema.Attribute.Private;
+    nickname: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 100;
+      }>;
+    photo_url: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 500;
+      }>;
+    privacy_default: Schema.Attribute.Enumeration<
+      ['public', 'followers', 'private', 'unlisted']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'private'>;
+    publishedAt: Schema.Attribute.DateTime;
+    rides_count: Schema.Attribute.Integer &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0;
+        },
+        number
+      > &
+      Schema.Attribute.DefaultTo<0>;
+    supabase_uid: Schema.Attribute.String &
+      Schema.Attribute.Unique &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 64;
+      }>;
+    timezone: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 64;
+      }>;
+    total_distance_m: Schema.Attribute.Float & Schema.Attribute.DefaultTo<0>;
+    total_time_ms: Schema.Attribute.BigInteger;
+    units: Schema.Attribute.Enumeration<['metric', 'imperial']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'metric'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    user: Schema.Attribute.Relation<
+      'oneToOne',
+      'plugin::users-permissions.user'
+    >;
+  };
+}
+
+export interface ApiRideRide extends Struct.CollectionTypeSchema {
+  collectionName: 'rides';
+  info: {
+    description: '\u0417\u0430\u043F\u0438\u0441\u0430\u043D\u043D\u044B\u0439 \u0437\u0430\u0435\u0437\u0434: \u043C\u0435\u0442\u0430\u0434\u0430\u043D\u043D\u044B\u0435 + \u0430\u0433\u0440\u0435\u0433\u0430\u0442\u044B + \u0441\u0436\u0430\u0442\u044B\u0435 waypoints (blob). \u0420\u0430\u043D\u0435\u0435 \u043C\u043E\u0434\u0435\u043B\u0438\u0440\u043E\u0432\u0430\u043B\u0441\u044F \u043A\u0430\u043A Track \u0432\u043E Flutter.';
+    displayName: 'Ride';
+    pluralName: 'rides';
+    singularName: 'ride';
+  };
+  options: {
+    comment: 'Created in B-02. The raw `waypoints_blob` BYTEA column is NOT a Strapi attribute (Strapi has no binary type) \u2014 it is added at bootstrap by ensureRideBlobColumn() and read/written only by the Epic C waypoints controller. Only its metadata lives here.';
+    draftAndPublish: false;
+  };
+  attributes: {
+    alt_max_m: Schema.Attribute.Float;
+    alt_min_m: Schema.Attribute.Float;
+    avg_speed_mps: Schema.Attribute.Float;
+    best_lap_ms: Schema.Attribute.BigInteger;
+    centroid_lat: Schema.Attribute.Float;
+    centroid_lon: Schema.Attribute.Float;
+    circuit: Schema.Attribute.Relation<'manyToOne', 'api::circuit.circuit'>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    deleted_at: Schema.Attribute.DateTime;
+    description: Schema.Attribute.RichText;
     device: Schema.Attribute.Relation<'manyToOne', 'api::device.device'>;
+    duration_ms: Schema.Attribute.BigInteger;
+    elevation_gain_m: Schema.Attribute.Float;
+    elevation_loss_m: Schema.Attribute.Float;
+    end_lat: Schema.Attribute.Float;
+    end_lon: Schema.Attribute.Float;
+    end_time: Schema.Attribute.DateTime;
+    event: Schema.Attribute.Relation<'manyToOne', 'api::event.event'>;
+    gates: Schema.Attribute.JSON;
+    gps_metrics: Schema.Attribute.JSON;
+    gps_quality_score: Schema.Attribute.Enumeration<
+      ['high', 'medium', 'low', 'junk']
+    >;
+    kind: Schema.Attribute.Enumeration<
+      ['track_day', 'practice', 'race', 'trip', 'test']
+    > &
+      Schema.Attribute.DefaultTo<'practice'>;
+    lap_count: Schema.Attribute.Integer &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0;
+        },
+        number
+      > &
+      Schema.Attribute.DefaultTo<0>;
+    laps_summary: Schema.Attribute.JSON;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<'oneToMany', 'api::ride.ride'> &
+      Schema.Attribute.Private;
+    max_lat: Schema.Attribute.Float;
+    max_lon: Schema.Attribute.Float;
+    max_speed_mps: Schema.Attribute.Float;
+    min_lat: Schema.Attribute.Float;
+    min_lon: Schema.Attribute.Float;
+    name: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 255;
+      }>;
+    notes: Schema.Attribute.RichText;
+    publishedAt: Schema.Attribute.DateTime;
+    ride_uid: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.Unique &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 64;
+      }>;
+    sample_rate_hz: Schema.Attribute.Integer & Schema.Attribute.DefaultTo<25>;
+    source_bin_sha256: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 64;
+      }>;
+    start_lat: Schema.Attribute.Float;
+    start_lon: Schema.Attribute.Float;
+    start_time: Schema.Attribute.DateTime;
+    sync_session: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::sync-session.sync-session'
+    >;
+    tags: Schema.Attribute.JSON;
+    time_regression: Schema.Attribute.Boolean &
+      Schema.Attribute.DefaultTo<false>;
+    timezone: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 64;
+      }>;
+    total_distance_m: Schema.Attribute.Float;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    user: Schema.Attribute.Relation<
+      'manyToOne',
+      'plugin::users-permissions.user'
+    >;
+    vehicle: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::motorcycle.motorcycle'
+    >;
+    visibility: Schema.Attribute.Enumeration<
+      ['public', 'followers', 'private', 'unlisted']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'private'>;
+    waypoint_count: Schema.Attribute.Integer &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0;
+        },
+        number
+      > &
+      Schema.Attribute.DefaultTo<0>;
+    waypoints_blob_bytes: Schema.Attribute.Integer &
+      Schema.Attribute.DefaultTo<0>;
+    waypoints_blob_codec: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 64;
+      }>;
+    waypoints_blob_original_bytes: Schema.Attribute.Integer &
+      Schema.Attribute.DefaultTo<0>;
+    waypoints_blob_sha256: Schema.Attribute.String &
+      Schema.Attribute.SetMinMaxLength<{
+        maxLength: 64;
+      }>;
+    waypoints_uploaded: Schema.Attribute.Boolean &
+      Schema.Attribute.DefaultTo<false>;
+    weather_snapshot: Schema.Attribute.JSON;
+  };
+}
+
+export interface ApiSyncSessionSyncSession extends Struct.CollectionTypeSchema {
+  collectionName: 'sync_sessions';
+  info: {
+    description: '\u0421\u0435\u0441\u0441\u0438\u044F \u0441\u0438\u043D\u0445\u0440\u043E\u043D\u0438\u0437\u0430\u0446\u0438\u0438 \u0442\u0440\u0435\u043A\u043E\u0432 \u0441 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430 \u043D\u0430 \u0441\u0435\u0440\u0432\u0435\u0440 (BLE/WiFi/USB/\u0438\u043C\u043F\u043E\u0440\u0442 \u0444\u0430\u0439\u043B\u0430).';
+    displayName: 'SyncSession';
+    pluralName: 'sync-sessions';
+    singularName: 'sync-session';
+  };
+  options: {
+    comment: 'B-09: added transport, bytes_transferred, files_synced, battery, duration, rides_created relation.';
+    draftAndPublish: false;
+  };
+  attributes: {
+    bytes_transferred: Schema.Attribute.BigInteger;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    device: Schema.Attribute.Relation<'manyToOne', 'api::device.device'>;
+    device_battery_end: Schema.Attribute.Integer &
+      Schema.Attribute.SetMinMax<
+        {
+          max: 100;
+          min: 0;
+        },
+        number
+      >;
+    device_battery_start: Schema.Attribute.Integer &
+      Schema.Attribute.SetMinMax<
+        {
+          max: 100;
+          min: 0;
+        },
+        number
+      >;
+    duration_ms: Schema.Attribute.BigInteger;
     ended_at: Schema.Attribute.DateTime;
     error_log: Schema.Attribute.JSON;
+    files_synced: Schema.Attribute.JSON;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
@@ -620,6 +1046,7 @@ export interface ApiSyncSessionSyncSession extends Struct.CollectionTypeSchema {
     > &
       Schema.Attribute.Private;
     publishedAt: Schema.Attribute.DateTime;
+    rides_created: Schema.Attribute.Relation<'oneToMany', 'api::ride.ride'>;
     started_at: Schema.Attribute.DateTime;
     status: Schema.Attribute.Enumeration<
       ['pending', 'in_progress', 'completed', 'failed']
@@ -634,56 +1061,9 @@ export interface ApiSyncSessionSyncSession extends Struct.CollectionTypeSchema {
         number
       > &
       Schema.Attribute.DefaultTo<0>;
-    updatedAt: Schema.Attribute.DateTime;
-    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-    user: Schema.Attribute.Relation<
-      'manyToOne',
-      'plugin::users-permissions.user'
+    transport: Schema.Attribute.Enumeration<
+      ['ble', 'wifi', 'usb', 'file_import']
     >;
-  };
-}
-
-export interface ApiTrackTrack extends Struct.CollectionTypeSchema {
-  collectionName: 'tracks';
-  info: {
-    description: '\u0413\u043E\u043D\u043E\u0447\u043D\u044B\u0439 \u0442\u0440\u0435\u043A / \u0442\u0440\u0430\u0441\u0441\u0430';
-    displayName: 'Track';
-    pluralName: 'tracks';
-    singularName: 'track';
-  };
-  options: {
-    comment: '';
-    draftAndPublish: true;
-  };
-  attributes: {
-    country: Schema.Attribute.String &
-      Schema.Attribute.SetMinMaxLength<{
-        maxLength: 100;
-      }>;
-    createdAt: Schema.Attribute.DateTime;
-    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
-      Schema.Attribute.Private;
-    description: Schema.Attribute.RichText;
-    device: Schema.Attribute.Relation<'manyToOne', 'api::device.device'>;
-    events: Schema.Attribute.Relation<'oneToMany', 'api::event.event'>;
-    image: Schema.Attribute.Media<'images'>;
-    length_meters: Schema.Attribute.Decimal;
-    locale: Schema.Attribute.String & Schema.Attribute.Private;
-    localizations: Schema.Attribute.Relation<'oneToMany', 'api::track.track'> &
-      Schema.Attribute.Private;
-    location: Schema.Attribute.String &
-      Schema.Attribute.SetMinMaxLength<{
-        maxLength: 255;
-      }>;
-    name: Schema.Attribute.String &
-      Schema.Attribute.Required &
-      Schema.Attribute.Unique &
-      Schema.Attribute.SetMinMaxLength<{
-        maxLength: 255;
-      }>;
-    publishedAt: Schema.Attribute.DateTime;
-    route_geojson: Schema.Attribute.JSON;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -1205,11 +1585,13 @@ declare module '@strapi/strapi' {
       'admin::transfer-token': AdminTransferToken;
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
+      'api::circuit.circuit': ApiCircuitCircuit;
       'api::device.device': ApiDeviceDevice;
       'api::event.event': ApiEventEvent;
       'api::motorcycle.motorcycle': ApiMotorcycleMotorcycle;
+      'api::profile.profile': ApiProfileProfile;
+      'api::ride.ride': ApiRideRide;
       'api::sync-session.sync-session': ApiSyncSessionSyncSession;
-      'api::track.track': ApiTrackTrack;
       'plugin::content-releases.release': PluginContentReleasesRelease;
       'plugin::content-releases.release-action': PluginContentReleasesReleaseAction;
       'plugin::i18n.locale': PluginI18NLocale;

@@ -6,6 +6,7 @@ const config: Core.Config.Middlewares = [
   'strapi::security',
   'strapi::cors',
   'strapi::poweredBy',
+  'global::request-context',
   'strapi::query',
   'strapi::body',
   'strapi::session',

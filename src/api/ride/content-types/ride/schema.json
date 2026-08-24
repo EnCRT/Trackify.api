@@ -1,0 +1,212 @@
+{
+  "kind": "collectionType",
+  "collectionName": "rides",
+  "info": {
+    "singularName": "ride",
+    "pluralName": "rides",
+    "displayName": "Ride",
+    "description": "Записанный заезд: метаданные + агрегаты + сжатые waypoints (blob). Ранее моделировался как Track во Flutter."
+  },
+  "options": {
+    "draftAndPublish": false,
+    "comment": "Created in B-02. The raw `waypoints_blob` BYTEA column is NOT a Strapi attribute (Strapi has no binary type) — it is added at bootstrap by ensureRideBlobColumn() and read/written only by the Epic C waypoints controller. Only its metadata lives here."
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "ride_uid": {
+      "type": "string",
+      "required": true,
+      "unique": true,
+      "maxLength": 64
+    },
+    "name": {
+      "type": "string",
+      "required": true,
+      "maxLength": 255
+    },
+    "description": {
+      "type": "richtext"
+    },
+    "notes": {
+      "type": "richtext"
+    },
+    "visibility": {
+      "type": "enumeration",
+      "enum": ["public", "followers", "private", "unlisted"],
+      "default": "private",
+      "required": true
+    },
+    "kind": {
+      "type": "enumeration",
+      "enum": ["track_day", "practice", "race", "trip", "test"],
+      "default": "practice"
+    },
+    "start_time": {
+      "type": "datetime"
+    },
+    "end_time": {
+      "type": "datetime"
+    },
+    "duration_ms": {
+      "type": "biginteger"
+    },
+    "timezone": {
+      "type": "string",
+      "maxLength": 64
+    },
+    "total_distance_m": {
+      "type": "float"
+    },
+    "max_speed_mps": {
+      "type": "float"
+    },
+    "avg_speed_mps": {
+      "type": "float"
+    },
+    "elevation_gain_m": {
+      "type": "float"
+    },
+    "elevation_loss_m": {
+      "type": "float"
+    },
+    "alt_min_m": {
+      "type": "float"
+    },
+    "alt_max_m": {
+      "type": "float"
+    },
+    "min_lat": {
+      "type": "float"
+    },
+    "min_lon": {
+      "type": "float"
+    },
+    "max_lat": {
+      "type": "float"
+    },
+    "max_lon": {
+      "type": "float"
+    },
+    "centroid_lat": {
+      "type": "float"
+    },
+    "centroid_lon": {
+      "type": "float"
+    },
+    "start_lat": {
+      "type": "float"
+    },
+    "start_lon": {
+      "type": "float"
+    },
+    "end_lat": {
+      "type": "float"
+    },
+    "end_lon": {
+      "type": "float"
+    },
+    "waypoint_count": {
+      "type": "integer",
+      "default": 0,
+      "min": 0
+    },
+    "sample_rate_hz": {
+      "type": "integer",
+      "default": 25
+    },
+    "gps_quality_score": {
+      "type": "enumeration",
+      "enum": ["high", "medium", "low", "junk"]
+    },
+    "gps_metrics": {
+      "type": "json"
+    },
+    "time_regression": {
+      "type": "boolean",
+      "default": false
+    },
+    "waypoints_uploaded": {
+      "type": "boolean",
+      "default": false
+    },
+    "waypoints_blob_bytes": {
+      "type": "integer",
+      "default": 0
+    },
+    "waypoints_blob_original_bytes": {
+      "type": "integer",
+      "default": 0
+    },
+    "waypoints_blob_codec": {
+      "type": "string",
+      "maxLength": 64
+    },
+    "waypoints_blob_sha256": {
+      "type": "string",
+      "maxLength": 64
+    },
+    "source_bin_sha256": {
+      "type": "string",
+      "maxLength": 64
+    },
+    "best_lap_ms": {
+      "type": "biginteger"
+    },
+    "lap_count": {
+      "type": "integer",
+      "default": 0,
+      "min": 0
+    },
+    "laps_summary": {
+      "type": "json",
+      "comment": "Per-lap breakdown derived from waypoints_blob on the client: [{number, duration_ms, kind, sectors}]. Laps are NOT a separate collection — the blob is the source of truth; this is a denormalized cache for the detail view."
+    },
+    "gates": {
+      "type": "json",
+      "comment": "Timing gates used to compute laps_summary for a freeform (circuit-less) ride: {layout, start_finish|start|finish, sectors}. When the ride is attached to a circuit, that circuit's gates are authoritative."
+    },
+    "weather_snapshot": {
+      "type": "json"
+    },
+    "tags": {
+      "type": "json"
+    },
+    "deleted_at": {
+      "type": "datetime"
+    },
+    "user": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "vehicle": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::motorcycle.motorcycle",
+      "inversedBy": "rides"
+    },
+    "device": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::device.device",
+      "inversedBy": "rides"
+    },
+    "circuit": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::circuit.circuit"
+    },
+    "event": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::event.event",
+      "inversedBy": "heats"
+    },
+    "sync_session": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::sync-session.sync-session",
+      "inversedBy": "rides_created"
+    }
+  }
+}

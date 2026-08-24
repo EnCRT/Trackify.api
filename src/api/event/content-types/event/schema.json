@@ -5,11 +5,11 @@
     "singularName": "event",
     "pluralName": "events",
     "displayName": "Event",
-    "description": "Трек-день / заезд"
+    "description": "Трек-день / организованный заезд на трассе с участниками."
   },
   "options": {
     "draftAndPublish": true,
-    "comment": ""
+    "comment": "B-08: `track` relation → `circuit`; added organizer, participants, heats, location, cover_image, entry_fee, weather. `results` are derivable from heats→rides (ranked by Ride.best_lap_ms), not stored as a relation."
   },
   "pluginOptions": {},
   "attributes": {
@@ -25,12 +25,6 @@
     "description": {
       "type": "richtext"
     },
-    "track": {
-      "type": "relation",
-      "relation": "manyToOne",
-      "target": "api::track.track",
-      "inversedBy": "events"
-    },
     "status": {
       "type": "enumeration",
       "enum": ["planned", "active", "completed", "cancelled"],
@@ -40,6 +34,45 @@
     "max_participants": {
       "type": "integer",
       "min": 1
+    },
+    "entry_fee": {
+      "type": "decimal"
+    },
+    "location_lat": {
+      "type": "float"
+    },
+    "location_lon": {
+      "type": "float"
+    },
+    "weather": {
+      "type": "json"
+    },
+    "cover_image": {
+      "type": "media",
+      "allowedTypes": ["images"],
+      "multiple": false
+    },
+    "circuit": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::circuit.circuit",
+      "inversedBy": "events"
+    },
+    "organizer": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user"
+    },
+    "participants": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "plugin::users-permissions.user"
+    },
+    "heats": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::ride.ride",
+      "mappedBy": "event"
     }
   }
 }
