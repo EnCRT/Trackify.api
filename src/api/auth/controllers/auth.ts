@@ -1,4 +1,6 @@
+import crypto from 'node:crypto';
 import type { Core } from '@strapi/strapi';
+import { getAuthenticatedUser } from '../../../utils/request-helpers';
 
 // Lazy-load google-auth-library so Strapi starts even if it's not installed yet.
 let OAuth2Client: any;
@@ -92,8 +94,26 @@ export default {
         strapi.log.info(`[Google Auth] Created new user: ${email}`);
       }
 
+      // Ensure the rider has a Profile row (B-06). Non-fatal on failure —
+      // auth still succeeds; C-04's GET /profiles/me will retry the create.
+      try {
+        await strapi
+          .service('api::profile.profile')
+          .findOrCreateForUser(user.id, {
+            nickname: user.username,
+            first_name: name?.split(' ')[0] || '',
+            last_name: name?.split(' ').slice(1).join(' ') || '',
+            photo_url: picture,
+          });
+      } catch (profileErr: any) {
+        strapi.log.error(
+          '[Google Auth] Profile ensure failed:',
+          profileErr?.message || profileErr
+        );
+      }
+
       // Issue JWT
-      const jwt = jwtService.issue({ id: user.id });
+      const jwt = await jwtService.issue({ id: user.id });
 
       ctx.send({
         jwt,
@@ -109,5 +129,51 @@ export default {
         'Google authentication failed: ' + (error.message || 'Unknown error')
       );
     }
+  },
+
+  /**
+   * POST /api/auth/refresh
+   *
+   * Trackify uses Strapi-issued JWTs (the Google id-token is verified once at
+   * login). Refresh is a sliding re-issue: present a still-valid token (Bearer
+   * header or `refresh_token` in the body) and get a fresh JWT.
+   *
+   * NOTE(contract §9): this resolves the open item — Strapi issues/refreshes its
+   * own JWT; it does not forward a Supabase token. A rotating refresh-token store
+   * (users-permissions `jwtManagement: 'refresh'`) is a future hardening step.
+   */
+  async refresh(ctx: any) {
+    let userId = (await getAuthenticatedUser(ctx))?.id;
+
+    if (!userId) {
+      const token = ctx.request.body?.refresh_token;
+      if (token) {
+        try {
+          const payload = await strapi
+            .plugin('users-permissions')
+            .service('jwt')
+            .verify(token);
+          userId = payload?.id;
+        } catch {
+          /* fall through to 401 */
+        }
+      }
+    }
+
+    if (!userId) {
+      return ctx.unauthorized('Invalid or missing token');
+    }
+
+    const jwt = await strapi.plugin('users-permissions').service('jwt').issue({ id: userId });
+    return ctx.send({ jwt, expires_in: 3600 });
+  },
+
+  /**
+   * POST /api/auth/logout
+   * JWTs are stateless, so logout is a client-side token discard. Returns 204.
+   * (A token-blacklist can be added later if server-side revocation is needed.)
+   */
+  async logout(ctx: any) {
+    ctx.status = 204;
   },
 };

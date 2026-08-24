@@ -25,7 +25,11 @@ const deniedExecutableTypes = [
 const config = ({ env }: Core.Config.Shared.ConfigParams): Core.Config.Plugin => ({
   'users-permissions': {
     config: {
-      jwtManagement: 'refresh',
+      // legacy-support = дефолт Strapi: jwt.issue() возвращает подписанную строку
+      // синхронно — именно так ожидает кастомный /auth/* контроллер (auth.ts).
+      // НЕ включать 'refresh' без переписывания auth.ts: в refresh-режиме
+      // jwt.issue() асинхронный, а verify() не принимает refresh-токены.
+      jwtManagement: 'legacy-support',
       sessions: {
         httpOnly: true,
       },
