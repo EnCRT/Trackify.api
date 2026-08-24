@@ -82,16 +82,21 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
     const visible: any[] = [{ verified: { $eq: true } }];
     if (user) visible.push({ created_by_user: { id: { $eq: user.id } } });
 
-    const conditions: any[] = [{ $or: visible }, { deleted_at: { $null: true } }];
-    if (ctx.query.filters) conditions.unshift(ctx.query.filters);
-
-    ctx.query = {
-      ...ctx.query,
-      filters: {
-        $and: conditions,
-      },
+    // Owner/visibility-scoped query via the Document Service (see
+    // motorcycle.find): the REST validator rejects relation filters to
+    // users-permissions.user.
+    const filters = {
+      ...(ctx.query.filters || {}),
+      $or: visible,
+      deleted_at: { $null: true },
     };
-    return super.find(ctx);
+
+    const { results, pagination } = await strapi.service(UID).find({
+      ...ctx.query,
+      filters,
+    });
+    const sanitizedResults = await (this as any).sanitizeOutput(results, ctx);
+    return (this as any).transformResponse(sanitizedResults, { pagination });
   },
 
   // ──────────────────────────────────────────────────────────────

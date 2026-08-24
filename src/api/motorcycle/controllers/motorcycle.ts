@@ -13,18 +13,24 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
   async find(ctx) {
     const user = ctx.state.user;
     if (isAdminUser(user)) return super.find(ctx);
-    if (user) {
-      const conditions: any[] = [
-        { user: { id: { $eq: user.id } } },
-        { deleted_at: { $null: true } },
-      ];
-      if (ctx.query.filters) conditions.unshift(ctx.query.filters);
-      ctx.query = {
-        ...ctx.query,
-        filters: { $and: conditions },
-      };
-    }
-    return super.find(ctx);
+
+    // Owner-scoped query via the Document Service (B-06 pattern): the REST
+    // query validator rejects relation filters to plugin::users-permissions.user
+    // ("Invalid key user"), but strapi.documents().findMany() accepts them.
+    // So we bypass validateQuery/sanitizeQuery and hand the merged filter
+    // straight to the core service.
+    const filters = {
+      ...(ctx.query.filters || {}),
+      ...(user ? { user: { id: { $eq: user.id } } } : {}),
+      deleted_at: { $null: true },
+    };
+
+    const { results, pagination } = await strapi.service(UID).find({
+      ...ctx.query,
+      filters,
+    });
+    const sanitizedResults = await (this as any).sanitizeOutput(results, ctx);
+    return (this as any).transformResponse(sanitizedResults, { pagination });
   },
 
   async findOne(ctx) {

@@ -67,15 +67,20 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
           }
         : { visibility: { $eq: 'public' } };
 
-      const conditions: any[] = [ownership, { deleted_at: { $null: true } }];
-      if (ctx.query.filters) conditions.unshift(ctx.query.filters);
-
-      ctx.query = {
-        ...ctx.query,
-        filters: {
-          $and: conditions,
-        },
+      // Owner-scoped query via the Document Service (see motorcycle.find):
+      // the REST validator rejects relation filters to users-permissions.user.
+      const filters = {
+        ...(ctx.query.filters || {}),
+        ...ownership,
+        deleted_at: { $null: true },
       };
+
+      const { results, pagination } = await strapi.service(UID).find({
+        ...ctx.query,
+        filters,
+      });
+      const sanitizedResults = await (this as any).sanitizeOutput(results, ctx);
+      return (this as any).transformResponse(sanitizedResults, { pagination });
     }
 
     // Note: waypoints_blob is not a Strapi attribute, so the feed never carries
